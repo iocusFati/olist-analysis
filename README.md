@@ -1,124 +1,124 @@
-# 📊 Аналіз бізнес-моделі маркетплейсу Olist
+# 📊 Business Model Analysis of the Olist Marketplace
 
 ---
 
-## 🏢 Про проєкт
+## 🏢 About the Project
 
-Цей проєкт базується на аналізі датасету **Olist Brazilian E-Commerce** — відкритих даних бразильського маркетплейсу.
+This project is based on an analysis of the **Olist Brazilian E-Commerce** dataset — open data from a Brazilian marketplace.
 
-Аналіз досліджує бізнес-модель Olist: звідки береться дохід, чи повертаються клієнти, та які фактори впливають на ці показники. Метою дослідження було визначити основні джерела доходу маркетплейсу, дізнатися більше про клієнтів, а також визначити вплив різних факторів, зокрема: швидкості доставки і оцінок відгуків на показники компанії 
+The analysis examines Olist's business model: where revenue comes from, whether customers return, and what factors influence these metrics. The goal of the study was to identify the marketplace's main revenue sources, learn more about its customers, and determine the impact of various factors — in particular, delivery speed and review ratings — on the company's performance.
 
-Інсайти надаються за наступними ключовими напрямками:
+Insights are provided along the following key directions:
 
-- **Скільки клієнтів повертаються за повторними покупками, і як швидко вони "відпадають"**
-- **Звідки насправді береться дохід** — з великої кількості дрібних замовлень чи з невеликої кількості дорогих**
-- **Які типи клієнтів існують** та наскільки вони цінні для бізнесу
-- **Що впливає (а що ні) на повторні покупки** — якість відгуків, швидкість доставки, характеристики товару
+- **How many customers return for repeat purchases, and how quickly they "drop off"**
+- **Where revenue actually comes from** — a large number of small orders or a small number of expensive ones
+- **What types of customers exist** and how valuable they are to the business
+- **What affects (and what doesn't) repeat purchases** — review quality, delivery speed, product characteristics
 
-## 🗂 Структура даних
+## 🗂 Data Structure
 
-Аналіз базується на датасеті `olist`, який містить **99 441 замовлення** та кілька пов'язаних таблиць:
+The analysis is based on the `olist` dataset, which contains **99,441 orders** and several related tables:
 
-- **orders** — одне замовлення = один рядок; містить дату покупки, поточний статус (доставлено, скасовано, в дорозі тощо), а також очікувану й фактичну дати доставки
-- **customers** — окремий `customer_id` створюється на кожне замовлення, тоді як `customer_unique_id` ідентифікує саме людину і повторюється, якщо вона купує знову; також містить місто/штат клієнта
-- **order_items** — одна товарна позиція в замовленні = один рядок (замовлення з кількома товарами матиме кілька рядків); ціна товару та вартість доставки записані окремо
-- **products** — характеристики товару: категорія, довжина назви й опису, кількість доданих фото
-- **order_payments** — як саме клієнт оплатив замовлення: тип оплати (картка, готівка тощо), кількість частин розстрочки, сума
-- **order_reviews** — відгук клієнта на замовлення: оцінка від 1 до 5 та дата залишення відгуку
+- **orders** — one order = one row; contains the purchase date, current status (delivered, canceled, in transit, etc.), as well as the estimated and actual delivery dates
+- **customers** — a separate `customer_id` is created for each order, while `customer_unique_id` identifies the actual person and repeats if they buy again; also contains the customer's city/state
+- **order_items** — one product line item within an order = one row (an order with multiple products will have multiple rows); item price and shipping cost are recorded separately
+- **products** — product characteristics: category, name/description length, number of photos added
+- **order_payments** — how exactly the customer paid for the order: payment type (card, cash, etc.), number of installments, amount
+- **order_reviews** — the customer's review of the order: rating from 1 to 5 and the date the review was left
 
-## 🧹 Очищення даних
+## 🧹 Data Cleaning
 
-Усі сирі таблиці лишаються без змін у схемі `public`. Для аналізу створена окрема схема **`clean`**, яка містить представлення (views) поверх сирих даних — це дозволяє тримати логіку очищення прозорою, відокремленою від оригінальних даних і легко відтворюваною.
+All raw tables remain unchanged in the `public` schema. A separate **`clean`** schema was created for the analysis, containing views on top of the raw data — this keeps the cleaning logic transparent, separated from the original data, and easily reproducible.
 
-Основні кроки очищення:
+Main cleaning steps:
 
-- **Дати** приведені з часових позначок до типу `date` (`orders`)
-- **Окреме представлення `clean.active_orders`** створене спеціально для аналізу — воно виключає скасовані та недоступні замовлення, залишаючи лише ті, що реально відбулися. Це представлення використовується у всіх подальших аналізах, щоб метрики (утримання, дохід, сегменти) відображали справжню поведінку клієнтів, а не скасовані транзакції
-- **Статус доставки** доданий як окреме поле — на основі порівняння фактичної та очікуваної дати доставки визначається, чи замовлення прийшло вчасно, із запізненням, або не було доставлено взагалі
-- **Дублікати відгуків** (`review_id`, що повторюється з різними даними) прибрані — залишається найновіший запис на кожен `review_id`
-- **Пропущені значення** в характеристиках товару (довжина назви/опису, кількість фото) замінені на 0; порожня або відсутня категорія товару позначена як `unknown`
+- **Dates** converted from timestamps to the `date` type (`orders`)
+- **A separate `clean.active_orders` view** created specifically for analysis — it excludes canceled and unavailable orders, leaving only those that actually took place. This view is used across all subsequent analyses so that metrics (retention, revenue, segments) reflect real customer behavior rather than canceled transactions
+- **Delivery status** added as a separate field — based on comparing the actual and estimated delivery dates, it determines whether an order arrived on time, was late, or was never delivered at all
+- **Duplicate reviews** (`review_id` repeating with different data) removed — only the most recent record is kept for each `review_id`
+- **Missing values** in product characteristics (name/description length, number of photos) replaced with 0; empty or missing product category labeled as `unknown`
 
-## 📌 Загальний огляд
+## 📌 Overview
 
-Дохід Olist стабільно зростав протягом 2017 року — з ~120 тис. у січні до пікового значення понад 1 млн у листопаді 2017, після чого коливається в діапазоні 850 тис. – 1 млн без чіткої висхідної динаміки протягом 2018 року.
+Olist's revenue grew steadily throughout 2017 — from ~120K in January to a peak of over 1 million in November 2017, after which it fluctuates in the 850K–1M range with no clear upward trend throughout 2018.
 
-Кількість нових клієнтів за місяцями демонструє майже ідентичну форму — зростання протягом 2017 року, пік наприкінці року, і вихід на плато в діапазоні 6000–7000 нових клієнтів на місяць протягом 2018 року. Ці два графіки візуально корелюють, що підтверджує: динаміка доходу практично повністю визначається темпом залучення нових клієнтів. 
-Звідси ключовий висновок аналізу: бізнес Olist тримається на постійному залученні нових клієнтів, а не на побудові довгострокових стосунків із наявними. Лише **3,04%** клієнтів здійснюють повторну покупку.
+The number of new customers by month shows an almost identical shape — growth throughout 2017, a peak at the end of the year, and a plateau in the range of 6,000–7,000 new customers per month throughout 2018. These two charts visually correlate, confirming that revenue dynamics are almost entirely driven by the pace of new customer acquisition.
+This leads to the key conclusion of the analysis: Olist's business relies on continuously acquiring new customers rather than building long-term relationships with existing ones. Only **3.04%** of customers make a repeat purchase.
 
 <p align="center">
   <img width="500" height="300" alt="image" src="https://github.com/user-attachments/assets/71be196c-e332-49ae-a8d2-082d4e237602" />
   <img width="500" height="300" alt="image" src="https://github.com/user-attachments/assets/7a8b7bdc-58ee-4bfa-8b79-23863d208443" />
 </p>
 
-### 🔄 Сегментація клієнтів
+### 🔄 Customer Segmentation
 
-Утримання клієнтів на Olist вкрай низьке — лише **3,04%** здійснюють більше однієї покупки. Низький retention спостерігається серед усіх категорій клієнтів - від тих, хто витрачає мало до тих, хто витрачає значні суми.
+Customer retention on Olist is extremely low — only **3.04%** make more than one purchase. Low retention is observed across all customer categories — from low spenders to those who spend significant amounts.
 
-Цікавіше — розподіл за цінністю через RFM-сегментацію:
+More interesting is the value breakdown via RFM segmentation:
 
 <p align="center">
   <img width="595" height="363" alt="image" src="https://github.com/user-attachments/assets/4c910fe9-bb5b-4d1f-b335-8f20937e7558" />
 </p>
 
-**High-Value Recent Newbies** та **Lost High-Value Shoppers** разом складають **30.32%** бази — майже третина клієнтів уже довела готовність витрачати суттєві суми, зробивши це лише один раз.
+**High-Value Recent Newbies** and **Lost High-Value Shoppers** together make up **30.32%** of the customer base — almost a third of customers have already proven willing to spend significant amounts, having done so only once.
 
-### 💰 Структура доходу
+### 💰 Revenue Structure
 
-Замовлення розподілені на цінові сегменти, щоб порівняти частку замовлень і частку доходу в кожному діапазоні:
+Orders were split into price segments to compare each range's share of orders against its share of revenue:
 
 <p align="center">
   <img width="901" height="159" alt="image" src="https://github.com/user-attachments/assets/19991eac-160a-4564-8a1f-8558c79ca784" />
 </p>
 
-Найдорожчий сегмент (269.90+) складає лише **9.93%** замовлень, але формує **40.85%** усього доходу. Ширше: замовлення дорожчі за **86.90** — це лише 50% усіх замовлень, але вони формують понад **80% (83.13%)** усього доходу. Дохід суттєво концентрований у відносно невеликій кількості дорогих замовлень, а не розподілений рівномірно за обсягом продажів.
+The most expensive segment (269.90+) accounts for only **9.93%** of orders but generates **40.85%** of all revenue. More broadly: orders priced above **86.90** make up just 50% of all orders, yet they generate over **80% (83.13%)** of total revenue. Revenue is heavily concentrated in a relatively small number of expensive orders rather than being evenly distributed across sales volume.
 
-**В середньому на одне замовлення припадає лише один товар** (1.02–1.38 залежно від сегмента) — клієнти на Olist практично не формують кошик із кількох позицій за одну покупку. Тому дорогі замовлення дорогі саме через ціну самого товару, а не через те, що клієнт додав більше одиниць у кошик.
+**On average, an order contains only one item** (1.02–1.38 depending on the segment) — Olist customers rarely build a multi-item cart in a single purchase. So expensive orders are expensive because of the item's price itself, not because the customer added more units to the cart.
 
-### ⭐ Фактори повторних покупок
+### ⭐ Factors Behind Repeat Purchases
 
-Перевірено, чи пояснюють оцінка у відгуку та якість доставки, чому клієнти не повертаються — порівнюючи оцінку/статус доставки першого замовлення клієнта з тим, чи зробив він друге замовлення.
+Checked whether review rating and delivery quality explain why customers don't return — by comparing a customer's first-order rating/delivery status against whether they placed a second order.
 
-**Оцінка у відгуку:** повторна покупка відбувається у **2.49%** випадків, якщо перше замовлення отримало оцінку 1, і в **3.06%** випадків при оцінці 5. Різниця статистично значуща (z ≈ 3.11), але дуже невелика за абсолютною величиною (0.6 в.п.) — оцінка у відгуку не є суттєвим фактором утримання.
+**Review rating:** a repeat purchase occurs in **2.49%** of cases when the first order received a rating of 1, and in **3.06%** of cases with a rating of 5. The difference is statistically significant (z ≈ 3.11) but very small in absolute terms (0.6 pp) — review rating is not a meaningful retention factor.
 
 <p align="center">
   <img width="565" height="126" alt="image" src="https://github.com/user-attachments/assets/727942d8-8799-4c23-8f8a-5938b4ed9ca5" />
 </p>
 
-**Запізнення доставки:** серед клієнтів, чиє перше замовлення прийшло вчасно, повторну покупку робить **3.08%**; серед тих, чиє перше замовлення запізнилось — **2.4%**. Різниця в тому ж напрямку, що й інтуїтивно очікується (запізнення трохи знижує повернення), але настільки мала (0.68 в.п.), що не може вважатись суттєвим фактором.
+**Late delivery:** among customers whose first order arrived on time, **3.08%** make a repeat purchase; among those whose first order was late, **2.4%** do. The difference points in the intuitively expected direction (a late delivery slightly reduces return rate), but it's small enough (0.68 pp) that it can't be considered a meaningful factor.
 
 <p align="center">
   <img width="579" height="78" alt="image" src="https://github.com/user-attachments/assets/1a50587e-aca0-4ab9-9082-5fe32363952b" />
 </p>
 
-### 📦 Продуктові фактори
+### 📦 Product Factors
 
-**Оцінка товару — це не просто зворотний зв'язок, а фактор продажів.** Товари з вищою середньою оцінкою продаються помітно частіше:
+**Product rating isn't just feedback — it's a sales factor.** Products with a higher average rating sell noticeably more often:
 
 <p align="center">
   <img width="403" height="104" alt="image" src="https://github.com/user-attachments/assets/21214b2d-271b-4670-ac05-6d699f52f329" />
 </p>
 
-Товари з найгіршою оцінкою (1-2) продаються майже вдвічі рідше за товари з найкращою оцінкою — репутація товару прямо впливає на те, скільки разів його купують. Цікаво, що пік частоти продажів припадає не на найвищу оцінку (4-5), а на сегмент 3-4 — тобто зв'язок не лінійний: "добре, але не ідеально" продається навіть краще, ніж "відмінно". За виручкою, однак, сегмент 4-5 домінує беззаперечно — просто тому, що переважна більшість товарів на платформі мають високу оцінку.
+Products with the worst ratings (1–2) sell almost half as often as products with the best ratings — a product's reputation directly affects how many times it gets bought. Interestingly, the peak sales frequency doesn't occur at the highest rating (4–5), but in the 3–4 segment — meaning the relationship isn't linear: "good but not perfect" actually sells even better than "excellent." By revenue, however, the 4–5 segment dominates unambiguously — simply because the vast majority of products on the platform have high ratings.
 
-Якщо оцінка товару настільки важлива для продажів — постає логічне питання: що взагалі впливає на саму оцінку? Була висунута гіпотеза, що недостатньо детальний опис або мала кількість фото можуть вводити клієнта в оману щодо товару, що згодом призводить до розчарування і нижчої оцінки.
+If product rating matters this much for sales, a logical question arises: what influences the rating itself? The hypothesis was that an insufficiently detailed description or too few photos might mislead the customer about the product, later leading to disappointment and a lower rating.
 
-**Гіпотеза не підтвердилась:** середня оцінка залишається стабільною на рівні **4.0–4.1** незалежно від кількості фото чи довжини опису товару — жодного помітного зв'язку.
+**The hypothesis was not confirmed:** the average rating stays stable at **4.0–4.1** regardless of the number of photos or description length — no noticeable relationship.
 
-**Натомість реальний вплив має запізнення доставки:** замовлення, доставлені вчасно, отримують середню оцінку **4.3**, тоді як замовлення із запізненням — лише **2.3**. Різниця майже вдвічі — запізнення доставки має набагато сильніший і очевидніший вплив на оцінку, ніж будь-яка характеристика картки товару.
+**Instead, the real driver is delivery delay:** orders delivered on time receive an average rating of **4.3**, while late orders receive only **2.3**. The difference is nearly twofold — delivery delay has a much stronger and more obvious effect on rating than any product listing characteristic.
 
-## 🚀 Рекомендації
+## 🚀 Recommendations
 
-- **Дослідити причини затримок доставки.** Запізнення майже вдвічі знижує оцінку товару — це найсильніший фактор, що впливає на задоволеність клієнта. Варто з'ясувати, які регіони, продавці чи категорії товарів запізнюються найчастіше.
+- **Investigate the causes of delivery delays.** Lateness nearly halves a product's rating — it's the strongest factor affecting customer satisfaction. Worth identifying which regions, sellers, or product categories are late most often.
 
-- **Спробувати повернути клієнтів після першої покупки** — наприклад, через програму лояльності чи нагадування. Оскільки ні відгуки, ні доставка не пояснюють, чому клієнти не повертаються, проблему навряд чи вирішити самим лише покращенням якості — потрібні окремі механізми повернення.
+- **Try to win customers back after their first purchase** — for example, through a loyalty program or reminders. Since neither reviews nor delivery explain why customers don't return, the problem likely can't be solved through quality improvements alone — dedicated win-back mechanisms are needed.
 
-- **Впровадити систему рекомендацій супутніх товарів.** Зараз на замовлення припадає в середньому один товар — є простір для зростання доходу через більший кошик, а не лише через нових клієнтів.
+- **Implement a related-products recommendation system.** Currently an order contains on average just one item — there's room to grow revenue through larger carts, not only through new customers.
 
-- **Використати дорожчі замовлення для росту доходу.** Замовлення дорожчі за 86.90 формують понад 80% доходу, варто протестувати способи підштовхнути клієнтів купувати саме в цьому діапазоні.
+- **Leverage higher-priced orders to grow revenue.** Orders above 86.90 generate over 80% of revenue; it's worth testing ways to nudge customers toward purchasing in this range.
 
-## ⚠️ Припущення та застереження
+## ⚠️ Assumptions and Caveats
 
-- **Скасовані та недоступні замовлення виключені з усього аналізу** (`clean.active_orders`) — метрики відображають лише реально здійснені транзакції.
-- **2016 рік виключений із трендових аналізів** (динаміка доходу, темп залучення нових клієнтів) — платформа щойно запускалась, обсяг замовлень у ці місяці на порядки нижчий за нормальний і не є репрезентативним.
-- **Frequency-скор у RFM розрахований вручну, а не через `NTILE`**, оскільки розподіл клієнтів за кількістю замовлень надто зміщений (переважна більшість — одна покупка), і рівномірний розподіл на квінтилі не відображав би реальну картину.
-- **Відгуки з дублікатами `review_id`** очищені — залишений лише найновіший запис на кожен `review_id`.
+- **Canceled and unavailable orders are excluded from the entire analysis** (`clean.active_orders`) — metrics reflect only transactions that actually took place.
+- **2016 is excluded from trend analyses** (revenue dynamics, new customer acquisition pace) — the platform had just launched, and order volume in those months is orders of magnitude lower than normal and not representative.
+- **The Frequency score in RFM was calculated manually rather than via `NTILE`**, since the distribution of customers by order count is too skewed (the vast majority have only one purchase), and an even quintile split would not reflect the real picture.
+- **Reviews with duplicate `review_id`** were cleaned — only the most recent record is kept for each `review_id`.
